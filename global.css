@@ -7,7 +7,7 @@ body {
     box-sizing: border-box;
     margin: auto;
     padding: 1em;
-  }
+}
 
 html, body {
     margin: 0;
@@ -35,7 +35,7 @@ html, body {
 }
 
 circle {
-    fill: steelblue;
+    fill: var(--color);
     fill-opacity: 60%;
     stroke: white;
     stroke-width: 1px;
@@ -72,4 +72,60 @@ label.time-slider em {
 
 label.time-slider input[type="range"] {
     width: 300px; /* Adjust the width as needed */
+}
+
+/* New rule to apply color variables to both #map circle and .legend > div */
+#map circle,
+.legend > div {
+    --color-departures: steelblue;
+    --color-arrivals: darkorange;
+    --color: color-mix(
+        in oklch,
+        var(--color-departures) calc(100% * var(--departure-ratio)),
+        var(--color-arrivals)
+    );
+    fill: var(--color);
+}
+
+/* Flexbox for legend container */
+.legend {
+    display: flex;
+    margin-block: 1em; /* Adjust margin as needed */
+    border-radius: 8px; /* Rounded corners */
+    overflow: hidden; /* Prevent spacing issues */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Soft shadow for better visibility */
+    width: 100%; /* Stretch across the container */
+}
+
+/* Styling each legend item */
+.legend > div {
+    flex-grow: var(--departure-ratio, 1); /* Dynamically scale based on departure ratio */
+    padding: 0.5em 0; /* Vertical padding */
+    text-align: center; /* Center text */
+    font-weight: bold; /* Bold text for visibility */
+    color: white; /* White text for contrast */
+}
+
+/* Specific colors for each section */
+.legend > div:first-child,
+.legend > div:nth-child(2),
+.legend > div:last-child {
+    flex-grow: 1; /* Equal size for each child */
+}
+
+.legend > div:first-child {
+    background-color: #4c84c4; /* Blue for departures */
+    text-align: left; /* Align text left */
+    padding-left: 12px; /* Add space */
+}
+
+.legend > div:nth-child(2) {
+    background-color: #b47eb3; /* Purple for balanced */
+    text-align: center; /* Center text */
+}
+
+.legend > div:last-child {
+    background-color: #e78a30; /* Orange for arrivals */
+    text-align: right; /* Align text right */
+    padding-right: 12px; /* Add space */
 }

@@ -2,7 +2,6 @@
 import mapboxgl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/+esm';
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
-
 // Set your Mapbox access token here
 mapboxgl.accessToken = 'pk.eyJ1IjoiZzd4dSIsImEiOiJjbTdrMjVyb2MwZDdiMnNvcGw4OHA2NHhmIn0.lrNw1t28q-7N8jsV6IpT2g';
 
@@ -12,6 +11,9 @@ const paint = {
     'line-width': 3,
     'line-opacity': 0.4
 };
+
+// Declare the timeFilter variable
+let timeFilter;
 
 // Initialize the map
 const map = new mapboxgl.Map({
@@ -32,6 +34,8 @@ const timeSlider = document.getElementById('time-filter');
 const selectedTime = document.getElementById('selected-time');
 const anyTimeLabel = document.getElementById('any-time');
 
+let stationFlow = d3.scaleQuantize().domain([0, 1]).range([0, 0.5, 1]);
+
 // Function to convert station data to pixel coordinates
 function getCoords(station) {
     const point = new mapboxgl.LngLat(+station.lon, +station.lat);  // Convert lon/lat to Mapbox LngLat
@@ -43,9 +47,7 @@ function getCoords(station) {
 function formatTime(minutes) {
     const date = new Date(0, 0, 0, 0, minutes);  // Set hours & minutes
     return date.toLocaleString('en-US', { timeStyle: 'short' }); // Format as HH:MM AM/PM
-  }
-
-
+}
 
 // Function to filter trips by time
 function computeStationTraffic(stations, trips) {
@@ -73,7 +75,6 @@ function computeStationTraffic(stations, trips) {
     });
 }
 
-
 function minutesSinceMidnight(date) {
     return date.getHours() * 60 + date.getMinutes();
 }
@@ -94,9 +95,23 @@ function filterTripsbyTime(trips, timeFilter) {
         });
 }
 
+// Function to update the time display
+function updateTimeDisplay() {
+    timeFilter = Number(timeSlider.value);  // Get slider value
+
+    if (timeFilter === -1) {
+        selectedTime.textContent = '';  // Clear time display
+        anyTimeLabel.style.display = 'block';  // Show "(any time)"
+    } else {
+        selectedTime.textContent = formatTime(timeFilter);  // Display formatted time
+        anyTimeLabel.style.display = 'none';  // Hide "(any time)"
+    }
+
+    // Trigger filtering logic which will be implemented in the next step
+    updateScatterPlot(timeFilter);
+}
+
 map.on('load', async () => { 
-
-
     // getting data source for boston bike lanes
     map.addSource('boston_route', {
         type: 'geojson',
@@ -193,7 +208,8 @@ map.on('load', async () => {
                 d3.select(this)
                   .append('title')
                   .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
-              });
+              })
+            .style("--departure-ratio", d => stationFlow(d.departures / d.totalTraffic)); 
 
         // Function to update circle positions when the map moves/zooms
         function updatePositions() {
@@ -225,7 +241,10 @@ map.on('load', async () => {
             circles
               .data(filteredStations, (d) => d.short_name) // Update the data bound to the circle
               .join('circle') // Ensure the data is bound correctly
-              .attr('r', (d) => radiusScale(d.totalTraffic)); // Update circle sizes
+              .attr('r', (d) => radiusScale(d.totalTraffic)) // Update circle sizes
+              .style('--departure-ratio', (d) =>
+                stationFlow(d.departures / d.totalTraffic),
+              );
         }
 
         // Function to update the time display
@@ -245,19 +264,12 @@ map.on('load', async () => {
             updateScatterPlot(timeFilter);
         }
 
-
-
         timeSlider.addEventListener('input', updateTimeDisplay);
         updateTimeDisplay();
-
-        
 
     } catch (error) {
         console.error('Error loading JSON:', error); // Handle errors
     }
-
-
-
 });
 
 
