@@ -32,10 +32,7 @@ html, body {
     width: 100%;
     height: 100%;
     pointer-events: none;
-
-
-  }
-
+}
 
 circle {
     fill: steelblue;
@@ -43,4 +40,36 @@ circle {
     stroke: white;
     stroke-width: 1px;
     pointer-events: auto;
+}
+
+label.timeslider {
+    margin-left: auto;
+}
+
+label.timeslider time.selected-time {
+    display: block;
+}
+
+header.time-filter-header {
+    display: flex;
+    gap: 1em;
+    align-items: baseline;
+}
+
+label.time-slider {
+    margin-left: auto;
+}
+
+label.time-slider time,
+label.time-slider em {
+    display: block;
+}
+
+label.time-slider em {
+    color: lightgray;
+    font-style: italic;
+}
+
+label.time-slider input[type="range"] {
+    width: 300px; /* Adjust the width as needed */
 }
