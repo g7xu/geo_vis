@@ -24,8 +24,10 @@ const map = new mapboxgl.Map({
 });
 
 const INPUT_BLUEBIKES_CSV_URL = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
+const INPUT_BLUEBIKES_TRAFFIC_URL = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
 
 const svg = d3.select('#map').select('svg');
+
 
 
 // Function to convert station data to pixel coordinates
@@ -64,8 +66,35 @@ map.on('load', async () => {
         paint: paint
     });
 
+    // Load station traffic data
+    let trips;
+    let departures;
+    let arrivals;
+
+    try {
+        const jsonurl = INPUT_BLUEBIKES_TRAFFIC_URL;
+
+        // Await CSV fetch
+        trips = await d3.csv(jsonurl);
+
+        departures = d3.rollup(
+            trips,
+            (v) => v.length,
+            (d) => d.start_station_id,
+            );
+
+        arrivals = d3.rollup(
+            trips,
+            (v) => v.length,
+            (d) => d.end_station_id,
+            );
+    } catch (error) {
+        console.error('Error loading CSV:', error); // Handle errors
+    }
+
     // Load Bluebikes data
     let jsonData;
+    let stations;
 
     try {
         const jsonurl = INPUT_BLUEBIKES_CSV_URL;
@@ -73,17 +102,32 @@ map.on('load', async () => {
         // Await JSON fetch
         const jsonData = await d3.json(jsonurl);
 
-        let stations = jsonData.data.stations;
+        stations = jsonData.data.stations;
+
+        stations = stations.map((station) => {
+            let id = station.short_name;
+            station.arrivals = arrivals.get(id) ?? 0;
+            station.departures = departures.get(id) ?? 0;
+            station.totalTraffic = station.arrivals + station.departures;
+            return station;
+          });
+
+        const radiusScale = d3
+        .scaleSqrt()
+        .domain([0, d3.max(stations, (d) => d.totalTraffic)])
+        .range([0, 25]);
 
         const circles = svg.selectAll('circle')
             .data(stations)
             .enter()
             .append('circle')
-            .attr('r', 5)               // Radius of the circle
-            .attr('fill', 'steelblue')  // Circle fill color
-            .attr('stroke', 'white')    // Circle border color
-            .attr('stroke-width', 1)    // Circle border thickness
-            .attr('opacity', 0.8);      // Circle opacity
+            .attr('r', d => radiusScale(d.totalTraffic))  // Radius of the circle
+            .each(function(d) {
+                // Add <title> for browser tooltips
+                d3.select(this)
+                  .append('title')
+                  .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+              });
 
         // Function to update circle positions when the map moves/zooms
         function updatePositions() {
@@ -104,7 +148,9 @@ map.on('load', async () => {
     } catch (error) {
         console.error('Error loading JSON:', error); // Handle errors
     }
-    
+
+
+
 });
 
 
